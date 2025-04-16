@@ -120,20 +120,16 @@ export function getFrameCount(img, color = "def", flipped = false, outlineWidth 
         return 0;
     }
 
-    let flippedString = "noflip";
-
-    if(flipped) {
-        flippedString = "flip";
-    }
+    const flippedString = flipped ? "flip" : "noflip";
 
     const imgObj = getImgObj(img, color, outlineColor, outlineWidth, flippedString, scale, custTileSize);
 
-    if(imgObj) {
-        if(imgObj.loading) {
-            return 0;
-        } else {
-            return imgObj.frames.length;
-        }
+    if (imgObj.loading && !imgObj.init) {
+        getAsset(img, 0, color, flipped, custTileSize, outlineWidth, outlineColor, null, scale);
+    }
+
+    if (!imgObj.loading) {
+        return imgObj.frames.length;
     }
 
     return 0;
