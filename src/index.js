@@ -20,6 +20,7 @@ let d3_geom_contourDx = [1, 0, 1, 1,-1, 0,-1, 1,0, 0,0,0,-1, 0,-1,NaN],
 export function initAssets() {
     imageAssets = {};
     frameCache = {};
+}
 
 export function setTileSize(size) {
     tileSize = size;
