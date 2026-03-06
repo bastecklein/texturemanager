@@ -6,6 +6,8 @@ let tileSize = 0;
 let renderScaleFactor = 1;
 let hardTileSize = 0;
 
+let frameCache = {};
+
 let defImageDirectory = "";
 
 let useWidthInstead = false;
@@ -17,7 +19,7 @@ let d3_geom_contourDx = [1, 0, 1, 1,-1, 0,-1, 1,0, 0,0,0,-1, 0,-1,NaN],
 
 export function initAssets() {
     imageAssets = {};
-}
+    frameCache = {};
 
 export function setTileSize(size) {
     tileSize = size;
@@ -68,21 +70,21 @@ export function getAsset(img, frame = 0, color = "def", flipped = false, custTil
 
     if (withData && withData.toLowerCase().indexOf("<?xml") === 0) {
         issvg = true;
-        processLoadedSvgText(withData, imgObj);
+        processLoadedSvgText(withData, imgObj, img);
         return null;
     }
 
     if (issvg) {
         fetch(useSrc).then(async response => {
             const svgAsString = await response.text();
-            processLoadedSvgText(svgAsString, imgObj);
+            processLoadedSvgText(svgAsString, imgObj, img);
         });
     } else {
         const preImage = new Image();
         if (useSrc.indexOf("http:") === 0 || useSrc.indexOf("https:") === 0 || useSrc.indexOf("data:") === 0) {
             preImage.crossOrigin = "anonymous";
         }
-        preImage.addEventListener("load", () => frameizeImage(preImage, imgObj));
+        preImage.addEventListener("load", () => frameizeImage(preImage, imgObj, img));
         preImage.addEventListener("error", e => handleImageError(e, imgObj));
         preImage.src = useSrc;
     }
@@ -115,10 +117,18 @@ export function setDefaultImageDirectory(dir) {
     defImageDirectory = dir;
 }
 
-export function getFrameCount(img, color = "def", flipped = false, outlineWidth = 0, outlineColor = "#000000", scale = 1, custTileSize = tileSize) {
+export function getFrameCount(img) {
     if(!img) {
-        return 0;
+        return -1;
     }
+
+    if(frameCache[img]) {
+        return frameCache[img];
+    }
+
+    return -1;
+
+    /*
 
     const flippedString = flipped ? "flip" : "noflip";
 
@@ -132,7 +142,7 @@ export function getFrameCount(img, color = "def", flipped = false, outlineWidth 
         return imgObj.frames.length;
     }
 
-    return 0;
+    return -1;*/
 }
 
 export function setHardTileSize(size) {
@@ -192,7 +202,7 @@ function getImgObj(img, color, outlineColor, outlineWidth, flippedString, scale,
     }
 }
 
-function processLoadedSvgText(svgAsString, imgObj) {
+function processLoadedSvgText(svgAsString, imgObj, assetName) {
     if (imgObj.color && imgObj.color !== "def") {
         svgAsString = svgAsString.replaceAll("fill:#ff00ff;", "fill:" + imgObj.color + ";");
     }
@@ -202,7 +212,7 @@ function processLoadedSvgText(svgAsString, imgObj) {
     let img = new Image();
 
     img.onload = () => {
-        frameizeImage(img, imgObj);
+        frameizeImage(img, imgObj, assetName);
         window.URL.revokeObjectURL(svgBlob);
     };
 
@@ -210,7 +220,7 @@ function processLoadedSvgText(svgAsString, imgObj) {
     img.src = url;
 }
 
-function frameizeImage(img, imgObj) {
+function frameizeImage(img, imgObj, assetName) {
 
     let useScaleFactor = renderScaleFactor * imgObj.scale;
 
@@ -236,6 +246,8 @@ function frameizeImage(img, imgObj) {
 
     const totalSourceFrames = img.width / sourceTileSize;
     const destFrameWidth = sourceTileSize * useScaleFactor;
+
+    frameCache[assetName] = totalSourceFrames;
     
 
     const aCanvas = document.createElement("canvas");
